@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="stats-cards">
+    <div class="card" style="background-color: #007bff;">
+        <i class="fas fa-users"></i>
+        <h3>{{ total_users }}</h3>  <!-- Tampilkan jumlah total user -->
+        <p>Total Users</p>
+        <a href="#">More info</a>
+    </div>
+    <div class="card" style="background-color: #ff9f43;">
+        <i class="fas fa-newspaper"></i>
+        <h3>15</h3>
+        <p>Total Artikel</p>
+        <a href="#">More info</a>
+    </div>
+</div>
+{% endblock %}
