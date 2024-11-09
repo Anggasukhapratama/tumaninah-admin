@@ -28,6 +28,7 @@ def login():
         
         if account:
             stored_password_hash = account[2]  # Pastikan ini adalah hash password
+            # Cek apakah password cocok
             if check_password_hash(stored_password_hash, password):
                 session['loggedin'] = True
                 session['id'] = account[0]
@@ -40,39 +41,10 @@ def login():
     
     return render_template('login.html', msg=msg)
 
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    msg = ''
-    if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
-        username = request.form['username']
-        password = request.form['password']
-        
-        # Cek apakah username sudah ada
-        cursor = mysql.connection.cursor()
-        cursor.execute('SELECT * FROM accounts WHERE username = %s', (username,))
-        account = cursor.fetchone()
-        
-        if account:
-            msg = 'Username already exists!'
-        else:
-            hashed_password = generate_password_hash(password)
-            cursor.execute('INSERT INTO accounts (username, password) VALUES (%s, %s)', (username, hashed_password))
-            mysql.connection.commit()
-            msg = 'You have successfully registered! You can now log in.'
-    
-    return render_template('register.html', msg=msg)
-
 @app.route('/dashboard')
 def dashboard():
     if 'loggedin' in session:
-        # Ambil jumlah pengguna dari database
-        cursor = mysql.connection.cursor()
-        cursor.execute('SELECT COUNT(*) FROM accounts')  # Hitung jumlah user di tabel accounts
-        total_users = cursor.fetchone()[0]
-        cursor.close()
-
-        # Kirim jumlah pengguna ke template
-        return render_template('dashboard.html', username=session['username'], total_users=total_users)
+        return render_template('dashboard.html', username=session['username'])
     return redirect(url_for('login'))
 
 @app.route('/logout')
@@ -82,16 +54,14 @@ def logout():
     session.pop('username', None)
     return redirect(url_for('login'))
 
-# Menampilkan Daftar Pengguna
 @app.route('/users')
 def users():
     cursor = mysql.connection.cursor()
-    cursor.execute('SELECT * FROM accounts')  # Menggunakan tabel accounts
+    cursor.execute('SELECT * FROM accounts')
     user_data = cursor.fetchall()
     cursor.close()
     return render_template('user/users.html', users=user_data)
 
-# Menambahkan Pengguna Baru
 @app.route('/users/add', methods=['GET', 'POST'])
 def add_user():
     if request.method == 'POST':
@@ -104,23 +74,26 @@ def add_user():
         return redirect(url_for('users'))
     return render_template('user/add_user.html')
 
-# Mengedit Pengguna
 @app.route('/users/edit/<int:id>', methods=['GET', 'POST'])
 def edit_user(id):
     cursor = mysql.connection.cursor()
     cursor.execute('SELECT * FROM accounts WHERE id = %s', (id,))
-    user = cursor.fetchone()  # Menggunakan tabel accounts
+    user = cursor.fetchone()
+    
     if request.method == 'POST':
         new_username = request.form['username']
         new_password = generate_password_hash(request.form['password'])
-        cursor.execute('UPDATE accounts SET username = %s, password = %s WHERE id = %s', (new_username, new_password, id))
+        
+        # Update hanya username dan password, tidak menyentuh role
+        cursor.execute('UPDATE accounts SET username = %s, password = %s WHERE id = %s', 
+                       (new_username, new_password, id))
         mysql.connection.commit()
         cursor.close()
         return redirect(url_for('users'))
+    
     cursor.close()
-    return render_template('edit_user.html', user=user)
+    return render_template('user/edit_user.html', user=user)
 
-# Menghapus Pengguna
 @app.route('/users/delete/<int:id>')
 def delete_user(id):
     cursor = mysql.connection.cursor()
